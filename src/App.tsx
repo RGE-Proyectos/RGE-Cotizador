@@ -133,6 +133,7 @@ export default function CotizadorRGECompleto() {
 
   // Agregar elemento de Cancelería / Construcción a la medida
   const agregarCancelariaAlCarrito = () => {
+    console.log("VALOR ACTUAL EN EL INPUT:", precioUnitarioInput);
     if (!ancho || !alto) {
       alert('Por favor ingresa el ancho y el alto.');
       return;
