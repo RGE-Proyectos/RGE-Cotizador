@@ -67,7 +67,7 @@ export default function CotizadorRGECompleto() {
   const [etiquetaObra, setEtiquetaObra] = useState('');
   const [ancho, setAncho] = useState('');
   const [alto, setAlto] = useState('');
-  const [precioBaseM2, setPrecioBaseM2] = useState<number>(1970);
+
   const [precioUnitarioInput, setPrecioUnitarioInput] = useState<string>('1970');
 
   // Cargar productos del catálogo desde Supabase
@@ -131,10 +131,11 @@ export default function CotizadorRGECompleto() {
       alert('Por favor ingresa el ancho y el alto.');
       return;
     }
+    const precioM2 = parseFloat(precioUnitarioInput) || 0;
     const w = parseFloat(ancho);
     const h = parseFloat(alto);
     const area = w * h;
-    const subtotal = area * precioBaseM2;
+    const subtotal = area * precioM2;
     const nuevoItem: ItemCarrito = {
       id: `canceleria-${Date.now()}`,
       tipo: 'cancelaria',
@@ -144,7 +145,7 @@ export default function CotizadorRGECompleto() {
       alto: h,
       area_total: area,
       cantidad: 1,
-      precio_unitario: precioBaseM2,
+      precio_unitario: precioM2,
       subtotal: subtotal,
     };
     setCarrito(prev => [...prev, nuevoItem]);
@@ -538,6 +539,7 @@ export default function CotizadorRGECompleto() {
                   </div>
                   <button 
                     onClick={agregarCancelariaAlCarrito}
+                    
                     className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition mt-4"
                   >
                     <Plus size={18} /> Agregar Concepto a la Cotización
