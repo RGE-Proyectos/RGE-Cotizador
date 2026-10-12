@@ -19,6 +19,12 @@ import {
   RotateCcw,
   Home
 } from 'lucide-react';
+const formatearMoneda = (monto: number): string => {
+  return monto.toLocaleString('es-MX', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
 
 // Inicialización de Supabase con tipado seguro para Vite
 const supabaseUrl = (import.meta as Record<string, any>).env.VITE_SUPABASE_URL || '';
@@ -594,7 +600,11 @@ export default function CotizadorRGECompleto() {
                     <div className="border-t border-slate-700 pt-4 mt-4 space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-400">Subtotal General:</span>
-                        <span className="font-semibold">${calcularSubtotalGeneral().toFixed(2)} MXN</span>
+                       
+                        <span className="font-bold text-slate-100">
+  ${formatearMoneda(calcularSubtotalGeneral())} MXN
+</span>
+                   
                       </div>
                       <div className="flex justify-between items-center text-sm">
                         <span className="text-slate-400">Costo de Flete / Instalación:</span>
@@ -607,7 +617,11 @@ export default function CotizadorRGECompleto() {
                       </div>
                       <div className="flex justify-between text-lg font-bold text-blue-400 pt-2 border-t border-slate-700">
                         <span>Total Final:</span>
-                        <span>${calcularTotalFinal().toFixed(2)} MXN</span>
+                     
+<span className="text-xl font-extrabold text-blue-400">
+  ${formatearMoneda(calcularTotalFinal())} MXN
+</span>
+
                       </div>
                     </div>
                     <button 
