@@ -63,11 +63,12 @@ export default function CotizadorRGECompleto() {
   const [busqueda, setBusqueda] = useState('');
 
   // Estados para Cancelería / Construcción (Medidas)
-  const [tipoObra, setTipoObra] = useState('Ventana Corrediza 3"');
+  const [tipoObra, setTipoObra] = useState('Ventana 1F-1C 3"');
   const [etiquetaObra, setEtiquetaObra] = useState('');
   const [ancho, setAncho] = useState('');
   const [alto, setAlto] = useState('');
-  const [precioBaseM2, setPrecioBaseM2] = useState<number>(1200);
+  const [precioBaseM2, setPrecioBaseM2] = useState<number>(1970);
+  const [precioUnitarioInput, setPrecioUnitarioInput] = useState<string>('1970');
 
   // Cargar productos del catálogo desde Supabase
   useEffect(() => {
@@ -467,7 +468,7 @@ export default function CotizadorRGECompleto() {
             {/* Vista: Cancelería / Medidas */}
             {vista === 'cancelaria' && (
               <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg max-w-xl mx-auto">
-                <h2 className="text-lg font-semibold text-slate-200 mb-4">Cotizador por Medidas (m²)</h2>
+                <h2 className="text-lg font-semibold text-slate-200 mb-4">Cotizador por Conceptos (m²)</h2>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Tipo de Obra / Sistema</label>
@@ -476,12 +477,31 @@ export default function CotizadorRGECompleto() {
                       onChange={e => setTipoObra(e.target.value)}
                       className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
                     >
-                      <option value='Ventana Corrediza 3"'>Ventana Corrediza 3"</option>
-                      <option value="Cancel de Baño Templado">Cancel de Baño Templado</option>
+                      <option value='Ventana 1F-1C 3"'>Ventana Fijo-Corrediza 3"</option>
+                       <option value='Ventana 1C-1C 3"'>Ventana Doble Corrediza 3"</option>
+                      <option value='Ventana 1F-1C 2"'>Ventana Fijo-Corrediza 2"</option>
+                       <option value='Ventana 1C-1C 2"'>Ventana Doble Corrediza 2"</option>
+                        <option value='Ventana 1C-1F-1C 3"'>Ventana Corrediza-Fijo-Corrediza 3"</option>
+                       <option value='Ventana 1C-1F-1C 2"'>Ventana Corrediza-Fijo-Corrediza 2"</option>
+                        <option value='Ventana 1F 3"'>Ventana Fija 3"</option>
+                      <option value="Cancel de Baño Plástico">Cancel de Baño Plástico</option>
                       <option value="Puerta Abatible Aluminio">Puerta Abatible Aluminio</option>
                       <option value="Barandal de Cristal">Barandal de Cristal</option>
                     </select>
                   </div>
+                  {/* - BLOQUE DEL PRECIO --- */}
+<div>
+  <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">
+    Precio x M² ($ MXN)
+  </label>
+  <input 
+    type="number" 
+    value={precioUnitarioInput}
+    onChange={(e) => setPrecioUnitarioInput(e.target.value)}
+    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500 transition-colors"
+    placeholder="0.00"
+  />
+</div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Etiqueta / Ubicación (Ej. Ventana Recámara)</label>
                     <input 
@@ -520,7 +540,7 @@ export default function CotizadorRGECompleto() {
                     onClick={agregarCancelariaAlCarrito}
                     className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition mt-4"
                   >
-                    <Plus size={18} /> Agregar Medida a la Cotización
+                    <Plus size={18} /> Agregar Concepto a la Cotización
                   </button>
                 </div>
               </div>
