@@ -1,0 +1,511 @@
+'use client';
+import React, { useState, useEffect } from 'react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import { createClient } from '@supabase/supabase-js';
+import { 
+  ShoppingCart, 
+  Package, 
+  Wrench, 
+  Trash2, 
+  Plus, 
+  Minus, 
+  FileText, 
+  Phone, 
+  User, 
+  ArrowLeft, 
+  CheckCircle,
+  Search,
+  Maximize2
+} from 'lucide-react';
+
+// Inicialización de Supabase con tipado seguro para Vite
+const supabaseUrl = (import.meta as Record<string, any>).env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = (import.meta as Record<string, any>).env.VITE_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+interface ProductoCatalogo {
+  id: string;
+  sku: string;
+  name: string;
+  sale_price: number;
+}
+
+interface ItemCarrito {
+  id: string;
+  tipo: 'catalogo' | 'cancelaria';
+  nombre: string;
+  etiqueta?: string;
+  ancho?: number;
+  alto?: number;
+  area_total?: number;
+  cantidad: number;
+  precio_unitario: number;
+  subtotal: number;
+}
+
+export default function CotizadorRGECompleto() {
+  // 'inicio' | 'catalogo' | 'cancelaria' | 'resumen'
+  const [vista, setVista] = useState<'inicio' | 'catalogo' | 'cancelaria' | 'resumen'>('inicio');
+  
+  // Datos del Cliente y Visita
+  const [nombreCliente, setNombreCliente] = useState('');
+  const [telefonoCliente, setTelefonoCliente] = useState('');
+  const [flete, setFlete] = useState<number>(0);
+  const [cargando, setCargando] = useState(false);
+
+  // Carrito unificado
+  const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
+
+  // Estados para Catálogo Multinegocio
+  const [productos, setProductos] = useState<ProductoCatalogo[]>([]);
+  const [busqueda, setBusqueda] = useState('');
+
+  // Estados para Cancelería / Construcción (Medidas)
+  const [tipoObra, setTipoObra] = useState('Ventana Corrediza 3"');
+  const [etiquetaObra, setEtiquetaObra] = useState('');
+  const [ancho, setAncho] = useState('');
+  const [alto, setAlto] = useState('');
+  const [precioBaseM2, setPrecioBaseM2] = useState<number>(1200);
+
+  // Cargar productos del catálogo desde Supabase
+  useEffect(() => {
+    async function cargarCatalogo() {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select(`id, sku, name, product_prices ( sale_price )`)
+          .eq('is_active', true);
+        if (error) throw error;
+        if (data) {
+          const formateados: ProductoCatalogo[] = data.map((p: any) => ({
+            id: p.id,
+            sku: p.sku || 'N/A',
+            name: p.name,
+            sale_price: p.product_prices?.[0]?.sale_price || 0,
+          }));
+          setProductos(formateados);
+        }
+      } catch (err) {
+        console.error('Error al cargar catálogo:', err);
+      }
+    }
+    cargarCatalogo();
+  }, []);
+
+  // Agregar producto de catálogo al carrito
+  const agregarCatalogoAlCarrito = (prod: ProductoCatalogo) => {
+    setCarrito(prev => {
+      const existe = prev.find(item => item.id === prod.id && item.tipo === 'catalogo');
+      if (existe) {
+        return prev.map(item =>
+          item.id === prod.id && item.tipo === 'catalogo'
+            ? { ...item, cantidad: item.cantidad + 1, subtotal: (item.cantidad + 1) * item.precio_unitario }
+            : item
+        );
+      }
+      return [
+        ...prev,
+        {
+          id: prod.id,
+          tipo: 'catalogo',
+          nombre: prod.name,
+          cantidad: 1,
+          precio_unitario: prod.sale_price,
+          subtotal: prod.sale_price,
+        },
+      ];
+    });
+  };
+
+  // Agregar elemento de Cancelería / Construcción a la medida
+  const agregarCancelariaAlCarrito = () => {
+    if (!ancho || !alto) {
+      alert('Por favor ingresa el ancho y el alto.');
+      return;
+    }
+    const w = parseFloat(ancho);
+    const h = parseFloat(alto);
+    const area = w * h;
+    const subtotal = area * precioBaseM2;
+    const nuevoItem: ItemCarrito = {
+      id: `canceleria-${Date.now()}`,
+      tipo: 'cancelaria',
+      nombre: tipoObra,
+      etiqueta: etiquetaObra || tipoObra,
+      ancho: w,
+      alto: h,
+      area_total: area,
+      cantidad: 1,
+      precio_unitario: precioBaseM2,
+      subtotal: subtotal,
+    };
+    setCarrito(prev => [...prev, nuevoItem]);
+    setAncho('');
+    setAlto('');
+    setEtiquetaObra('');
+    alert('¡Elemento agregado a la cotización!');
+  };
+
+  // Cambiar cantidad de artículos en el carrito
+  const cambiarCantidad = (id: string, delta: number) => {
+    setCarrito(prev =>
+      prev
+        .map(item => {
+          if (item.id === id) {
+            const nuevaCantidad = item.cantidad + delta;
+            if (nuevaCantidad <= 0) return null;
+            return {
+              ...item,
+              cantidad: nuevaCantidad,
+              subtotal: nuevaCantidad * item.precio_unitario,
+            };
+          }
+          return item;
+        })
+        .filter(Boolean) as ItemCarrito[]
+    );
+  };
+
+  const eliminarItem = (id: string) => {
+    setCarrito(prev => prev.filter(item => item.id !== id));
+  };
+
+  const calcularSubtotalGeneral = () => {
+    return carrito.reduce((acc, item) => acc + item.subtotal, 0);
+  };
+
+  const calcularTotalFinal = () => {
+    return calcularSubtotalGeneral() + Number(flete || 0);
+  };
+
+  // Guardar en Supabase y Generar PDF
+  const generarPDFyGuardar = async () => {
+    if (!nombreCliente || !telefonoCliente || carrito.length === 0) {
+      alert('Por favor completa el nombre, WhatsApp del cliente y agrega al menos un producto.');
+      return;
+    }
+    setCargando(true);
+    const totalFinal = calcularTotalFinal();
+    try {
+      for (const item of carrito) {
+        await supabase.from('cotizaciones').insert([
+          {
+            etiqueta: `${nombreCliente} - ${item.etiqueta || item.nombre}`,
+            ancho: item.ancho || 0,
+            alto: item.alto || 0,
+            area_total: item.area_total || 0,
+            costo_materiales: item.subtotal * 0.6,
+            utilidad: item.subtotal * 0.4,
+            precio_venta: item.subtotal,
+            flete: Number(flete) / carrito.length,
+            desglose_json: item,
+          },
+        ]);
+      }
+
+      const doc = new jsPDF();
+      const fecha = new Date().toLocaleDateString();
+
+      doc.setFontSize(20);
+      doc.setTextColor(27, 54, 93);
+      doc.text('RGE - MÉXICO', 14, 20);
+      doc.setFontSize(11);
+      doc.setTextColor(100);
+      doc.text('Cotización de Cancelería y Artículos', 14, 26);
+      doc.setFontSize(9);
+      doc.text(`Fecha: ${fecha}`, 14, 34);
+      doc.text(`Cliente: ${nombreCliente}`, 14, 40);
+      doc.text(`Teléfono: ${telefonoCliente}`, 14, 46);
+
+      const rows = carrito.map(item => [
+        item.tipo === 'cancelaria' 
+          ? `${item.etiqueta}\n(Medidas: ${item.ancho}m x ${item.alto}m | ${item.area_total?.toFixed(2)} m²)` 
+          : item.nombre,
+        item.cantidad,
+        `$${item.precio_unitario.toFixed(2)}`,
+        `$${item.subtotal.toFixed(2)}`,
+      ]);
+
+      (doc as any).autoTable({
+        startY: 54,
+        head: [['Descripción / Concepto', 'Cant./Área', 'P. Unitario', 'Subtotal']],
+        body: rows,
+        theme: 'grid',
+        headStyles: { fillColor: [27, 54, 93] },
+      });
+
+      const finalY = (doc as any).lastAutoTable.finalY || 100;
+      if (Number(flete) > 0) {
+        doc.setFontSize(10);
+        doc.text(`Flete / Instalación: $${Number(flete).toFixed(2)} MXN`, 14, finalY + 10);
+      }
+
+      doc.setFontSize(14);
+      doc.setTextColor(0);
+      doc.text(`Total Final: $${totalFinal.toFixed(2)} MXN`, 14, finalY + (Number(flete) > 0 ? 18 : 12));
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text('RGE - México | Calidad y Precisión en Aluminio, Carpintería y Herrería.', 14, finalY + 28);
+
+      doc.save(`Cotizacion_${nombreCliente.replace(/\s+/g, '_')}.pdf`);
+    } catch (error) {
+      console.error('Error al generar la cotización:', error);
+      alert('Hubo un error al guardar o generar la cotización.');
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const productosFiltrados = productos.filter(p => 
+    p.name.toLowerCase().includes(busqueda.toLowerCase()) || 
+    p.sku.toLowerCase().includes(busqueda.toLowerCase())
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-900 text-slate-100 p-4 md:p-8 font-sans">
+      <div className="max-w-5xl mx-auto">
+        {/* Encabezado */}
+        <header className="flex flex-col md:flex-row justify-between items-center bg-slate-800 p-6 rounded-xl shadow-lg mb-6 border border-slate-700">
+          <div>
+            <h1 className="text-2xl font-bold text-blue-400">RGE - MÉXICO</h1>
+            <p className="text-slate-400 text-sm">Sistema de Cotización y Catálogo Multinegocio</p>
+          </div>
+          <div className="mt-4 md:mt-0 flex items-center gap-3">
+            <button 
+              onClick={() => setVista('resumen')} 
+              className="relative bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition"
+            >
+              <ShoppingCart size={18} />
+              <span>Ver Cotización ({carrito.length})</span>
+            </button>
+          </div>
+        </header>
+
+        {/* Datos del Cliente */}
+        <div className="bg-slate-800 p-4 rounded-xl shadow mb-6 border border-slate-700 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">Nombre del Cliente</label>
+            <div className="flex items-center bg-slate-900 rounded-lg border border-slate-700 px-3 py-2">
+              <User size={18} className="text-slate-400 mr-2" />
+              <input 
+                type="text" 
+                placeholder="Ej. Juan Pérez" 
+                value={nombreCliente} 
+                onChange={e => setNombreCliente(e.target.value)}
+                className="bg-transparent w-full focus:outline-none text-sm text-slate-100"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">WhatsApp / Teléfono</label>
+            <div className="flex items-center bg-slate-900 rounded-lg border border-slate-700 px-3 py-2">
+              <Phone size={18} className="text-slate-400 mr-2" />
+              <input 
+                type="text" 
+                placeholder="Ej. 5512345678" 
+                value={telefonoCliente} 
+                onChange={e => setTelefonoCliente(e.target.value)}
+                className="bg-transparent w-full focus:outline-none text-sm text-slate-100"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Navegación de Vistas */}
+        <div className="flex gap-3 mb-6">
+          <button 
+            onClick={() => setVista('catalogo')}
+            className={`flex-1 py-3 px-4 rounded-xl font-medium flex items-center justify-center gap-2 border transition ${vista === 'catalogo' ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}`}
+          >
+            <Package size={18} />
+            <span>Catálogo General</span>
+          </button>
+          <button 
+            onClick={() => setVista('cancelaria')}
+            className={`flex-1 py-3 px-4 rounded-xl font-medium flex items-center justify-center gap-2 border transition ${vista === 'cancelaria' ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}`}
+          >
+            <Wrench size={18} />
+            <span>Cancelería / Medidas</span>
+          </button>
+        </div>
+
+        {/* Vista: Catálogo General */}
+        {vista === 'catalogo' && (
+          <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-slate-200">Seleccionar Productos</h2>
+              <div className="relative w-64">
+                <Search size={16} className="absolute left-3 top-3 text-slate-400" />
+                <input 
+                  type="text" 
+                  placeholder="Buscar producto..." 
+                  value={busqueda} 
+                  onChange={e => setBusqueda(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {productosFiltrados.map(prod => (
+                <div key={prod.id} className="bg-slate-900 border border-slate-700 p-4 rounded-xl flex flex-col justify-between">
+                  <div>
+                    <span className="text-xs text-blue-400 font-mono">SKU: {prod.sku}</span>
+                    <h3 className="font-semibold text-slate-100 mt-1">{prod.name}</h3>
+                    <p className="text-lg font-bold text-emerald-400 mt-2">${prod.sale_price.toFixed(2)} MXN</p>
+                  </div>
+                  <button 
+                    onClick={() => agregarCatalogoAlCarrito(prod)}
+                    className="mt-4 bg-blue-600 hover:bg-blue-500 text-white py-2 px-3 rounded-lg text-sm font-medium flex items-center justify-center gap-1 transition"
+                  >
+                    <Plus size={16} /> Agregar
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Vista: Cancelería / Medidas */}
+        {vista === 'cancelaria' && (
+          <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg max-w-xl mx-auto">
+            <h2 className="text-lg font-semibold text-slate-200 mb-4">Cotizador por Medidas (m²)</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Tipo de Obra / Sistema</label>
+                <select 
+                  value={tipoObra} 
+                  onChange={e => setTipoObra(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
+                >
+                  <option value='Ventana Corrediza 3"'>Ventana Corrediza 3"</option>
+                  <option value="Cancel de Baño Templado">Cancel de Baño Templado</option>
+                  <option value="Puerta Abatible Aluminio">Puerta Abatible Aluminio</option>
+                  <option value="Barandal de Cristal">Barandal de Cristal</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Etiqueta / Ubicación (Ej. Ventana Recámara)</label>
+                <input 
+                  type="text" 
+                  placeholder="Identificador del espacio" 
+                  value={etiquetaObra} 
+                  onChange={e => setEtiquetaObra(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Ancho (metros)</label>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    placeholder="0.00" 
+                    value={ancho} 
+                    onChange={e => setAncho(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Alto (metros)</label>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    placeholder="0.00" 
+                    value={alto} 
+                    onChange={e => setAlto(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+              <button 
+                onClick={agregarCancelariaAlCarrito}
+                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition mt-4"
+              >
+                <Plus size={18} /> Agregar Medida a la Cotización
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Vista: Resumen y Carrito */}
+        {vista === 'resumen' && (
+          <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-slate-200">Resumen de Cotización</h2>
+              <button 
+                onClick={() => setVista('catalogo')}
+                className="text-sm text-blue-400 hover:underline flex items-center gap-1"
+              >
+                <ArrowLeft size={16} /> Volver al catálogo
+              </button>
+            </div>
+
+            {carrito.length === 0 ? (
+              <p className="text-slate-400 text-center py-8">No hay elementos agregados en el carrito.</p>
+            ) : (
+              <div className="space-y-4">
+                <div className="divide-y divide-slate-700">
+                  {carrito.map(item => (
+                    <div key={item.id} className="py-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                      <div>
+                        <h4 className="font-semibold text-slate-100">{item.nombre}</h4>
+                        {item.tipo === 'cancelaria' && (
+                          <p className="text-xs text-slate-400">
+                            {item.etiqueta} — Medidas: {item.ancho}m x {item.alto}m ({item.area_total?.toFixed(2)} m²)
+                          </p>
+                        )}
+                        <p className="text-sm text-emerald-400 font-medium">${item.subtotal.toFixed(2)} MXN</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {item.tipo === 'catalogo' && (
+                          <div className="flex items-center bg-slate-900 border border-slate-700 rounded-lg">
+                            <button onClick={() => cambiarCantidad(item.id, -1)} className="p-1 text-slate-300 hover:text-white px-2"><Minus size={14} /></button>
+                            <span className="text-sm px-2">{item.cantidad}</span>
+                            <button onClick={() => cambiarCantidad(item.id, 1)} className="p-1 text-slate-300 hover:text-white px-2"><Plus size={14} /></button>
+                          </div>
+                        )}
+                        <button onClick={() => eliminarItem(item.id)} className="text-rose-400 hover:text-rose-300 p-1">
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="border-t border-slate-700 pt-4 mt-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-400">Subtotal General:</span>
+                    <span className="font-semibold">${calcularSubtotalGeneral().toFixed(2)} MXN</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-400">Costo de Flete / Instalación:</span>
+                    <input 
+                      type="number" 
+                      value={flete} 
+                      onChange={e => setFlete(Number(e.target.value))}
+                      className="w-32 bg-slate-900 border border-slate-700 rounded p-1 text-right text-slate-100"
+                    />
+                  </div>
+                  <div className="flex justify-between text-lg font-bold text-blue-400 pt-2 border-t border-slate-700">
+                    <span>Total Final:</span>
+                    <span>${calcularTotalFinal().toFixed(2)} MXN</span>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={generarPDFyGuardar}
+                  disabled={cargando}
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition mt-6 shadow-lg"
+                >
+                  <FileText size={20} />
+                  <span>{cargando ? 'Generando y Guardando...' : 'Generar PDF y Guardar en Supabase'}</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

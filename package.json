@@ -2,6 +2,7 @@
   "name": "cotizador-rge",
   "private": true,
   "version": "0.0.0",
+  "description": "Cotizador RGE",
   "type": "module",
   "scripts": {
    
