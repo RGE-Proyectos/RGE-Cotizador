@@ -315,19 +315,19 @@ export default function CotizadorRGECompleto() {
       }
 
 // --- Leyenda de Vigencia y Tiempos de Entrega (Antes del Total Final) ---
-doc.setFontSize(9);
-doc.setTextColor(100); // Color gris para las notas
-doc.text('• Vigencia de esta cotización: 9 días hábiles.', 14, finalY + 6);
-doc.text('• Tiempo de entrega: 10 a 15 días hábiles a partir de la recepción del 60% de anticipo.', 14, finalY + 12);
+     doc.setFontSize(9);
+       doc.setTextColor(100); // Color gris para las notas
+    doc.text('• Vigencia de esta cotización: 9 días hábiles.', 14, finalY + 8);
+       doc.text('• Tiempo de entrega: 10 a 15 días hábiles a partir', 14, finalY + 14);
+      doc.text('  de la recepción del 60% de anticipo.', 14, finalY + 20);
 
-
-      doc.setFontSize(14);
+       doc.setFontSize(14);
       doc.setTextColor(0);
       doc.text(`Total Final: $${totalFinal.toFixed(2)} MXN`, 14, finalY + (Number(flete) > 0 ? 18 : 12));
 
       doc.setFontSize(8);
       doc.setTextColor(150);
-      doc.text('RGE - México | Calidad y Precisión en Aluminio, Carpintería y Herrería.', 14, finalY + 28);
+      doc.text('RGE - México | Calidad y Precisión en Aluminio, Carpintería y Herrería.', 14, finalY + 44);
 
       doc.save(`Cotizacion_${nombreCliente.replace(/\s+/g, '_')}.pdf`);
       setVista('exito');
