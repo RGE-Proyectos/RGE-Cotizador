@@ -314,6 +314,13 @@ export default function CotizadorRGECompleto() {
         doc.text(`Flete / Instalación: $${Number(flete).toFixed(2)} MXN`, 14, finalY + 10);
       }
 
+// --- Leyenda de Vigencia y Tiempos de Entrega (Antes del Total Final) ---
+doc.setFontSize(9);
+doc.setTextColor(100); // Color gris para las notas
+doc.text('• Vigencia de esta cotización: 9 días hábiles.', 14, finalY + 6);
+doc.text('• Tiempo de entrega: 10 a 15 días hábiles a partir de la recepción del 60% de anticipo.', 14, finalY + 12);
+
+
       doc.setFontSize(14);
       doc.setTextColor(0);
       doc.text(`Total Final: $${totalFinal.toFixed(2)} MXN`, 14, finalY + (Number(flete) > 0 ? 18 : 12));
