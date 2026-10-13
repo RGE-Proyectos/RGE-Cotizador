@@ -247,11 +247,19 @@ export default function CotizadorRGECompleto() {
       doc.text('Cotización de Cancelería y Artículos', 14, 26);
 
       // Logo corporativo en la esquina superior derecha
-      doc.setFillColor(27, 54, 93);
-      doc.roundedRect(165, 12, 30, 20, 2, 2, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(10);
-      doc.text('RGE', 173, 24);
+      //doc.setFillColor(27, 54, 93);
+      //doc.roundedRect(165, 12, 30, 20, 2, 2, 'F');
+      //doc.setTextColor(255, 255, 255);
+      //doc.setFontSize(10);
+      //doc.text('RGE', 173, 24);
+
+// --- Logo corporativo en la esquina superior derecha ---
+try {
+  // Asegúrate de que el archivo esté dentro de la carpeta 'public' de tu proyecto
+  doc.addImage('/RGE-logo2k25-3D-Photoroom.png', 'PNG', 155, 10, 42, 25);
+} catch (error) {
+  console.log("No se pudo cargar el logotipo", error);
+}
 
       // Fecha, Hora y Datos del Cliente
       doc.setFontSize(9);
