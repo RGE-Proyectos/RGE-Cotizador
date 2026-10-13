@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { createClient } from '@supabase/supabase-js';
+import logoRge from './assets/RGE-logo2k25-3D-Photoroom.png';
 import { 
   ShoppingCart, 
   Package, 
@@ -256,7 +257,7 @@ export default function CotizadorRGECompleto() {
 // --- Logo corporativo en la esquina superior derecha ---
 try {
   // Asegúrate de que el archivo esté dentro de la carpeta 'public' de tu proyecto
-  doc.addImage('/RGE-logo2k25-3D-Photoroom.png', 'PNG', 155, 10, 42, 25);
+doc.addImage(logoRge, 'PNG', 155, 10, 42, 25);
 } catch (error) {
   console.log("No se pudo cargar el logotipo", error);
 }
@@ -317,11 +318,7 @@ try {
 
       const finalY = (doc as any).lastAutoTable.finalY || 100;
 
-      if (Number(flete) > 0) {
-        doc.setFontSize(10);
-        doc.text(`Flete / Instalación: $${Number(flete).toFixed(2)} MXN`, 14, finalY + 10);
-      }
-
+      
 // --- Cálculo del desplazamiento dinámico si hay flete ---
 // const offsetFlete = Number(flete) > 0 ? 12 : 0;
 
