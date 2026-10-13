@@ -314,20 +314,24 @@ export default function CotizadorRGECompleto() {
         doc.text(`Flete / Instalación: $${Number(flete).toFixed(2)} MXN`, 14, finalY + 10);
       }
 
-// --- Leyenda de Vigencia y Tiempos de Entrega (Antes del Total Final) ---
-     doc.setFontSize(9);
-       doc.setTextColor(100); // Color gris para las notas
-    doc.text('• Vigencia de esta cotización: 9 días hábiles.', 14, finalY + 8);
-       doc.text('• Tiempo de entrega: 10 a 15 días hábiles a partir', 14, finalY + 14);
-      doc.text('  de la recepción del 60% de anticipo.', 14, finalY + 20);
+// --- Cálculo del desplazamiento dinámico si hay flete ---
+const offsetFlete = Number(flete) > 0 ? 12 : 0;
 
-       doc.setFontSize(14);
-      doc.setTextColor(0);
-      doc.text(`Total Final: $${totalFinal.toFixed(2)} MXN`, 14, finalY + (Number(flete) > 0 ? 18 : 12));
+// --- Leyenda de Vigencia y Tiempos de Entrega ---
+doc.setFontSize(9);
+doc.setTextColor(100); 
+doc.text('• Vigencia de esta cotización: 9 días hábiles.', 14, finalY + 10 + offsetFlete);
+doc.text('• Tiempo de entrega: 10 a 15 días hábiles a partir de la recepción del 60% de anticipo.', 14, finalY + 16 + offsetFlete);
 
-      doc.setFontSize(8);
-      doc.setTextColor(150);
-      doc.text('RGE - México | Calidad y Precisión en Aluminio, Carpintería y Herrería.', 14, finalY + 44);
+// --- Total Final (Se posiciona abajo de las leyendas respetando el flete) ---
+doc.setFontSize(14);
+doc.setTextColor(0);
+doc.text(`Total Final: $${totalFinal.toFixed(2)} MXN`, 14, finalY + 28 + offsetFlete);
+
+// --- Pie de página institucional ---
+doc.setFontSize(8);
+doc.setTextColor(150);
+doc.text('RGE - México | Calidad y Precisión en Aluminio, Carpintería y Herrería.', 14, finalY + 40 + offsetFlete);
 
       doc.save(`Cotizacion_${nombreCliente.replace(/\s+/g, '_')}.pdf`);
       setVista('exito');
