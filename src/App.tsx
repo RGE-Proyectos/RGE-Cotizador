@@ -325,12 +325,12 @@ doc.addImage(logoRge, 'PNG', 155, 10, 42, 25);
 // --- 1. Impresión del Flete (si aplica) ---
 let currentY = finalY + 8;
 
-if (Number(flete) > 0) {
-  doc.setFontSize(10);
-  doc.setTextColor(50);
-  doc.text(`Flete / Instalación: $${Number(flete).toFixed(2)} MXN`, 44, currentY);
+//if (Number(flete) > 0) {
+  //doc.setFontSize(10);
+  //doc.setTextColor(50);
+  //doc.text(`Flete / Instalación: $${Number(flete).toFixed(2)} MXN`, 44, currentY);
   currentY += 15; // Avanzamos el puntero vertical
-}
+//}
 
 // --- 2 y 3. Leyendas de Vigencia y Tiempo de Entrega ---
 doc.setFontSize(9);
