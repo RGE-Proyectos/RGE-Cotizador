@@ -523,6 +523,7 @@ doc.text('RGE - México | Calidad y Precisión en Aluminio, Carpintería y Herre
                        <option value='Ventana 1C-1F-1C 2"'>Ventana Corrediza-Fijo-Corrediza 2"</option>
                         <option value='Ventana 1F 3"'>Ventana Fija 3"</option>
                       <option value="Cancel de Baño Plástico">Cancel de Baño Plástico</option>
+                      <option value="Cancel de Baño Templado">Cancel de Baño Vidrio Templado</option>
                       <option value="Puerta Abatible Aluminio">Puerta Abatible Aluminio</option>
                       <option value="Barandal de Cristal">Barandal de Cristal</option>
                     </select>
