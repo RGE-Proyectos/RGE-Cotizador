@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { createClient } from '@supabase/supabase-js';
-import logoRge from './assets/RGE-logo2k25-3D-Photoroom.png';
+// Cambia esto en la línea 6:
+import logoRge from './RGE-logo2k25-3D-Photoroom.png';
 import { 
   ShoppingCart, 
   Package, 
