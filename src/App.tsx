@@ -456,6 +456,7 @@ doc.text('RGE - México | Calidad y Precisión en Aluminio, Carpintería y Herre
                 </div>
 
 <div>
+  <div className="md:col-span-2"></div>
     <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">Dirección / Ubicación</label>
     <div className="flex items-center bg-slate-900 rounded-lg border border-slate-700 px-3 py-2">
       <MapPin size={18} className="text-slate-400 mr-2" />
