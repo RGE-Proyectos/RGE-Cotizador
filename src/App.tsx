@@ -15,6 +15,7 @@ import {
   FileText, 
   Phone, 
   User, 
+  MapPin,
   ArrowLeft, 
   CheckCircle2,
   Search,
@@ -60,6 +61,7 @@ export default function CotizadorRGECompleto() {
   // Datos del Cliente y Visita
   const [nombreCliente, setNombreCliente] = useState('');
   const [telefonoCliente, setTelefonoCliente] = useState('');
+  const [direccionCliente, setDireccionCliente] = useState('');
   const [flete, setFlete] = useState<number>(0);
   const [cargando, setCargando] = useState(false);
 
@@ -200,6 +202,7 @@ export default function CotizadorRGECompleto() {
   const reiniciarCotizacion = () => {
     setNombreCliente('');
     setTelefonoCliente('');
+    setDireccionCliente('');
     setFlete(0);
     setCarrito([]);
     setVista('catalogo');
@@ -236,9 +239,8 @@ export default function CotizadorRGECompleto() {
 
       // Generación del documento PDF
       const doc = new jsPDF();
-      const fechaStr = new Date().toLocaleDateString();
-      const horaStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
+      const fechaStr = new Date().toLocaleDateString('es-MX');
+      const horaStr = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true });
       // Encabezado Texto
       doc.setFontSize(20);
       doc.setTextColor(27, 54, 93);
@@ -269,6 +271,11 @@ doc.addImage(logoRge, 'PNG', 155, 10, 42, 25);
       doc.text(`Fecha y Hora: ${fechaStr} - ${horaStr}`, 14, 34);
       doc.text(`Cliente: ${nombreCliente}`, 14, 40);
       doc.text(`Teléfono: ${telefonoCliente}`, 14, 46);
+      if (direccionCliente) {
+        doc.text(`Dirección: ${direccionCliente}`, 14, 52);
+      }
+
+
 
       // Mapeo de filas incluyendo SKU (sin la palabra "SKU") para artículos de catálogo
       const rows = carrito.map(item => {
@@ -291,7 +298,7 @@ doc.addImage(logoRge, 'PNG', 155, 10, 42, 25);
       });
 
       autoTable(doc, {
-        startY: 54,
+        startY: direccionCliente ? 58 : 52,
         head: [['Descripción / Concepto', 'Cant./Área', 'P. Unitario', 'Subtotal']],
         body: rows,
         theme: 'grid',
@@ -447,6 +454,21 @@ doc.text('RGE - México | Calidad y Precisión en Aluminio, Carpintería y Herre
                     className="bg-transparent w-full focus:outline-none text-sm text-slate-100"
                   />
                 </div>
+
+<div>
+    <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">Dirección / Ubicación</label>
+    <div className="flex items-center bg-slate-900 rounded-lg border border-slate-700 px-3 py-2">
+      <MapPin size={18} className="text-slate-400 mr-2" />
+      <input 
+        type="text" 
+        placeholder="Ej. Av. Insurgentes Sur 123, Tlalpan" 
+        value={direccionCliente} 
+        onChange={e => setDireccionCliente(e.target.value)}
+        className="bg-transparent w-full focus:outline-none text-sm text-slate-100"
+      />
+    </div>
+  </div>
+
               </div>
             </div>
 
